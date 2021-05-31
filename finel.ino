@@ -31,12 +31,14 @@ int F;
 int WorkG = 33;
 int z;
 #define LED_G 25 //define green LED pin
+#define LED_R 12
 #define RELAY 27 //relay pin
 #define ACCESS_DELAY 4000
 #define DENIED_DELAY 1000
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 int J;
 bool rfidon = true;
+unsigned long startTime;
 
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&Serial2);
 
@@ -50,13 +52,13 @@ mfrc522.PCD_Init();   // Initiate MFRC522
 finger.begin(57600);
 z = 1;
 pinMode(LED_G, OUTPUT);
+pinMode(LED_R, OUTPUT);
 pinMode(RELAY, OUTPUT);
 pinMode (WorkG,INPUT);
 pinMode(WorkG, OUTPUT);
 x = 0;
 B = 0;
 digitalWrite(RELAY, HIGH);
-Serial.println("Put your card to the reader...");
 Serial.println();
  if (finger.verifyPassword()) 
  {
@@ -126,18 +128,34 @@ void loop()
   {
     Gmail();
     z = 3;
+    startTime = millis();
   }
   if ( z == 3)
-  {
+  { 
     TOUCH();
+    if(millis() - startTime >= 180000)
+    {
+      pinMode(26, OUTPUT);
+      digitalWrite(26, LOW);
+    }
     if ( W == F)
     {
+       digitalWrite(LED_R, LOW);
+      digitalWrite(LED_G, HIGH);
+      delay(2000);
+      digitalWrite(LED_G, LOW);
       z = 4;
       W = 0;
+      
+    }
+    if( W != F)
+    {
+       digitalWrite(LED_R, HIGH);
     }
   }
   if ( z == 4)
   {
+     digitalWrite(LED_R, LOW);
     Fingerprint();
   }
 }
@@ -147,11 +165,13 @@ void loop()
 
 int Rfid() 
 {
-  Serial.println("put the card"); 
+  Serial.println("Put your card to the reader...");
+
+  
  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) 
   {
-    Serial.println("no new card");
+    
     return z ;
   }
   // Select one of the cards
@@ -177,6 +197,9 @@ int Rfid()
   
   if (content.substring(1) == ( "53 44 B0 03"))
   {
+     digitalWrite(LED_G, HIGH);
+   delay(2000);
+    digitalWrite(LED_G, LOW);
    z = 2;
    return z;
   }
@@ -184,6 +207,9 @@ int Rfid()
  else   {
      z = 1;  
     Serial.println(" Access denied");
+     digitalWrite(LED_R, HIGH);
+   delay(2000);
+    digitalWrite(LED_R, LOW);
     delay(DENIED_DELAY);
     
 
@@ -290,6 +316,9 @@ int getFingerprintIDez()
  {
    Serial.println("Messy Image Try Again");
    B++;
+   digitalWrite(LED_R, HIGH);
+   delay(2000);
+   digitalWrite(LED_R, LOW);
    if ( B > 2 )
    {
     B = 0;
@@ -302,13 +331,16 @@ int getFingerprintIDez()
  p = finger.fingerFastSearch();
  if (p != FINGERPRINT_OK)  {
    
-   
+   digitalWrite(LED_R, HIGH);
+   delay(2000);
+    digitalWrite(LED_R, LOW);
    Serial.println("Not Valid Finger");
    B++;
+    
    if ( B > 2 )
    {
-    B = 0;
-    z = 1;
+    pinMode(26, OUTPUT);
+    digitalWrite(26, LOW);
    }
    delay(3000);
    return -1;
@@ -317,13 +349,16 @@ int getFingerprintIDez()
  
  // found a match!
   Serial.println("working welcome");
-  
+   
   digitalWrite(RELAY, LOW);
     digitalWrite(LED_G, HIGH);
     delay(ACCESS_DELAY);
     digitalWrite(RELAY, HIGH);
     digitalWrite(LED_G, LOW);
-    z  = 1;
+     pinMode(26, OUTPUT);
+    digitalWrite(26, LOW);
+    delay(5000);
+    z = 1;
     return 2;
   
 }
@@ -663,14 +698,13 @@ int TOUCH()
       else if ((x >= 85) && (x <= 230) && (y >= 254) && (y <= 310))
       {
         Serial.println("ENTER");
-        {
-          Serial.print("ENTER ");
+       
         Serial.print(numbers[0]);
         Serial.print(numbers[1]);
         Serial.print(numbers[2]);
         Serial.println(numbers[3]);
          W =(numbers[0]*1000)+ (numbers[1]*100)+ (numbers[2]*10)+ numbers[3] ;
-        }
+        
       }
       delay(250);
       
